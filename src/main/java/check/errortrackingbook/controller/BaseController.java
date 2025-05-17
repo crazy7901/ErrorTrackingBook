@@ -51,10 +51,6 @@ public class BaseController {
     return Result.success("\"Topic deleted successfully\"");
   }
 
-  @GetMapping("/hello")
-  public Result<String> hello() {
-    return Result.success("Hello, Spring Boot!");
-  }
 
   @GetMapping("/getTopic/{type}/{page}")
   public Result<IPage<TopicEntity>> getTopic(@PathVariable("type") String type, @PathVariable("page") Integer page){
@@ -79,6 +75,12 @@ public class BaseController {
   public Result<IPage<EssentialEntity>> getEssential(@PathVariable("type") String type, @PathVariable("page") Integer page){
     // Logic to get a topic by ID
     return Result.success(essentialService.getEssentialsByType(type,page));
+  }
+
+    @GetMapping("/getEssential")
+  public Result<IPage<EssentialEntity>> getEssential(@RequestParam("page") Integer page) {
+    // Logic to get a topic by ID
+    return Result.success(essentialService.getEssentialsPage(page));
   }
 
 

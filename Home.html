@@ -1,77 +1,112 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>分页查询前端页面</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .container {
+      max-width: 800px;
+    }
+    .result-card {
+      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border-left: 5px solid #007bff;
+    }
+    .answer {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
 <div class="container mt-4">
-  <h2 class="text-center">查询系统</h2>
+  <h2 class="text-center mb-4">查询系统</h2>
 
-  <!-- 搜索框和查询类型选择 -->
+  <!-- 导航按钮 -->
+  <div class="d-flex justify-content-center mb-3">
+    <a href="entry.html" class="btn btn-success">录入知识点或错题</a>
+  </div>
+
+  <!-- 搜索框和查询类型 -->
   <div class="row mb-3">
-    <div class="col">
-      <input id="searchInput" class="form-control" type="text" placeholder="请输入搜索字段" />
-    </div>
-    <div class="col">
+    <div class="col-4">
       <select id="queryType" class="form-select">
         <option value="错题">错题</option>
         <option value="知识点">知识点</option>
       </select>
     </div>
-    <div class="col">
-      <button id="searchButton" class="btn btn-primary">查询</button>
+    <div class="col-6">
+      <input id="searchInput" class="form-control" type="text" placeholder="请输入搜索字段">
+    </div>
+    <div class="col-2">
+      <button id="searchButton" class="btn btn-primary w-100">查询</button>
     </div>
   </div>
 
+  <!-- 查询所有数据按钮 -->
+  <div class="text-center mb-3">
+    <button id="getAllButton" class="btn btn-outline-secondary">查询全部</button>
+  </div>
+
   <!-- 结果展示 -->
-  <div id="results" class="mb-4"></div>
+  <div id="results"></div>
 
   <!-- 分页按钮 -->
-  <div id="pagination" class="d-flex justify-content-center">
-    <button id="prevPage" class="btn btn-secondary" onclick="changePage('prev')">上一页</button>
-    <button id="nextPage" class="btn btn-secondary ms-2" onclick="changePage('next')">下一页</button>
+  <div id="pagination" class="d-flex justify-content-center mt-3">
+    <button id="prevPage" class="btn btn-secondary me-2" onclick="changePage('prev')">上一页</button>
+    <button id="nextPage" class="btn btn-secondary" onclick="changePage('next')">下一页</button>
   </div>
 </div>
 
 <script>
   let currentPage = 1;  // 当前页码
-  let totalPages = 1;  // 总页数
+  let totalPages = 1;    // 总页数
 
-  // 监听查询按钮的点击事件
+  // 监听查询按钮
   document.getElementById('searchButton').addEventListener('click', function() {
-    currentPage = 1; // 每次查询时重置为第一页
+    currentPage = 1;
     loadResults();
   });
 
+  // 监听查询全部按钮
+  document.getElementById('getAllButton').addEventListener('click', function() {
+    currentPage = 1;
+    loadAllResults();
+  });
+
+  // 构建查询 URL
+  function buildUrl(searchInput, queryType) {
+    if (searchInput) {
+      return queryType === '错题'
+          ? `http://localhost:8888/api/getTopic/${searchInput}/${currentPage}`
+          : `http://localhost:8888/api/getEssential/${searchInput}/${currentPage}`;
+    } else {
+      return queryType === '错题'
+          ? `http://localhost:8888/api/getTopic?page=${currentPage}`
+          : `http://localhost:8888/api/getEssential?page=${currentPage}`;
+    }
+  }
+
+
   // 加载查询结果
   function loadResults() {
-    const searchInput = document.getElementById('searchInput').value;
+    const searchInput = document.getElementById('searchInput').value.trim();
     const queryType = document.getElementById('queryType').value;
-
-    if (!searchInput) {
-      alert('请输入搜索字段');
-      return;
-    }
-
-    // 构建查询 URL
-    const url = queryType === '错题'
-        ? `http://localhost:8888/api/getTopic/${searchInput}/${currentPage}`
-        : `http://localhost:8888/api/getEssential/${searchInput}/${currentPage}`;
+    const url = buildUrl(searchInput, queryType);
 
     axios.get(url)
     .then(response => {
       const data = response.data.data;
-      totalPages = data.total || 1;  // 假设返回的分页对象包含 totalPages
-      if (queryType === '错题') {
-        displayResults(data.records)
-      } else if (queryType === '知识点') {
-        displayResultsPoint(data.records);
-      }
-      // displayResults(data.records);  // 假设返回的数据中包含 ipage 对象
+      totalPages = data.totalPages || 1;
+      displayResults(data.records || data.list, queryType);
       togglePaginationButtons();
     })
     .catch(error => {
@@ -80,101 +115,66 @@
     });
   }
 
+
+  // 无条件查询所有错题或知识点
+  function loadAllResults() {
+    document.getElementById('searchInput').value = ''; // 清空搜索框
+    loadResults();
+  }
+
   // 展示查询结果
-  // function displayResults(results) {
-  //   const resultsDiv = document.getElementById('results');
-  //   resultsDiv.innerHTML = '';
-  //
-  //   if (results && results.length > 0) {
-  //     let htmlContent = '<ul class="list-group">';
-  //     results.forEach(result => {
-  //       htmlContent += `<li class="list-group-item">${JSON.stringify(result)}</li>`;
-  //     });
-  //     htmlContent += '</ul>';
-  //     resultsDiv.innerHTML = htmlContent;
-  //   } else {
-  //     resultsDiv.innerHTML = '<p>没有找到相关数据</p>';
-  //   }
-  // }
-  function displayResults(results) {
+  function displayResults(results, queryType) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '';
 
     if (results && results.length > 0) {
-      let htmlContent = '<ul class="list-group">';
-
-      // 遍历每个结果
       results.forEach(result => {
-        // 将 `\n` 转换为 <br> 换行标签
-        const formattedQuestion = result.question.replace(/\n/g, '<br>');
-
-        // 创建一个 div 以便包含 question 和 answer，answer 初始时隐藏
-        htmlContent += `
-                <li class="list-group-item">
-                    <div>
-                        <p><strong>Question:</strong></p>
-                        <p>${formattedQuestion}</p>
-                        <button class="btn btn-info" onclick="toggleAnswer(this)">Show Answer</button>
-                        <div class="answer" style="display:none;">
-                            <p><strong>Answer:</strong></p>
-                            <p>${result.answer}</p>
-                        </div>
-                    </div>
-                </li>
-            `;
+        if (queryType === '错题') {
+          resultsDiv.innerHTML += createQuestionCard(result);
+        } else {
+          resultsDiv.innerHTML += createPointCard(result);
+        }
       });
-
-      htmlContent += '</ul>';
-      resultsDiv.innerHTML = htmlContent;
     } else {
-      resultsDiv.innerHTML = '<p>没有找到相关数据</p>';
+      resultsDiv.innerHTML = '<p class="text-center">没有找到相关数据</p>';
     }
   }
 
-  function displayResultsPoint(results) {
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '';
+  // 生成错题展示卡片
+  function createQuestionCard(result) {
+    return `
+            <div class="result-card">
+                <p><strong>问题：</strong></p>
+                <p>${result.question.replace(/\n/g, '<br>')}</p>
+                <button class="btn btn-info btn-sm" onclick="toggleAnswer(this)">显示答案</button>
+                <div class="answer">
+                    <p><strong>答案：</strong></p>
+                    <p>${result.answer}</p>
+                </div>
+            </div>
+        `;
+  }
 
-    if (results && results.length > 0) {
-      let htmlContent = '<ul class="list-group">';
-
-      // 遍历每个结果
-      results.forEach(result => {
-        // 将 `\n` 转换为 <br> 换行标签
-        const formattedQuestion = result.point.replace(/\n/g, '<br>');
-
-        htmlContent += `
-                <li class="list-group-item">
-                    <div>
-                        <p><strong>Essential:</strong></p>
-                        <p>${formattedQuestion}</p>
-<!--                        <button class="btn btn-info" onclick="toggleAnswer(this)">Show Answer</button>-->
-                        </div>
-                    </div>
-                </li>
-            `;
-      });
-
-      htmlContent += '</ul>';
-      resultsDiv.innerHTML = htmlContent;
-    } else {
-      resultsDiv.innerHTML = '<p>没有找到相关数据</p>';
-    }
+  // 生成知识点展示卡片
+  function createPointCard(result) {
+    return `
+            <div class="result-card">
+            <p><strong>知识点：</strong></p>
+                <p>${result.point.replace(/\n/g, '<br>')}</p>
+<!--                <p><strong>知识点：</strong>${result.point}</p>-->
+                <p><strong>类别：</strong>${result.type}</p>
+            </div>
+        `;
   }
 
   // 切换答题显示隐藏
   function toggleAnswer(button) {
     const answerDiv = button.nextElementSibling;
-    if (answerDiv.style.display === "none") {
-      answerDiv.style.display = "block";
-      button.innerText = "Hide Answer";
-    } else {
-      answerDiv.style.display = "none";
-      button.innerText = "Show Answer";
-    }
+    answerDiv.style.display = answerDiv.style.display === "none" ? "block" : "none";
+    button.innerText = answerDiv.style.display === "none" ? "显示答案" : "隐藏答案";
   }
 
-  // 分页按钮控制
+  // 切换分页
   function changePage(direction) {
     if (direction === 'prev' && currentPage > 1) {
       currentPage--;
@@ -184,7 +184,7 @@
     loadResults();
   }
 
-  // 切换分页按钮的可用性
+  // 切换分页按钮状态
   function togglePaginationButtons() {
     document.getElementById('prevPage').disabled = currentPage === 1;
     document.getElementById('nextPage').disabled = currentPage === totalPages;

@@ -3,6 +3,7 @@ package check.errortrackingbook.service.impl;
 import check.errortrackingbook.mapper.EssentialMapper;
 import check.errortrackingbook.pojo.EssentialEntity;
 import check.errortrackingbook.pojo.EssentialEntity;
+import check.errortrackingbook.pojo.TopicEntity;
 import check.errortrackingbook.service.EssentialService;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -23,6 +24,10 @@ public class EssentialServiceImpl extends ServiceImpl<EssentialMapper, Essential
 
   @Override
   public IPage<EssentialEntity> getEssentialsPage(int currentPage) {
-    return null;
+    // 创建分页对象
+    Page<EssentialEntity> page = new Page<>(currentPage, 10);
+
+    // 使用 MyBatis-Plus 提供的分页查询方法
+    return this.page(page, new QueryWrapper<>());
   }
 }

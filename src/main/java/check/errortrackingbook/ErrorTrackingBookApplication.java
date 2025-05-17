@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 
 @SpringBootApplication(scanBasePackages = {"check.errortrackingbook"})
 @MapperScan("check.errortrackingbook.mapper")
-
 public class ErrorTrackingBookApplication {
 
   public static void main(String[] args) {
